@@ -127,7 +127,7 @@ class Matrix:
                         mat[i], mat[j] = mat[j], mat[i]
                         break
                 else:
-                    print("Det = 0. Not invertible!")
+                    print("Det = 0 -> Not invertible!")
                     return
 
             # Chia dòng hiện tại cho phần tử chính để phần tử đó bằng 1
@@ -146,45 +146,48 @@ class Matrix:
         inverse = [[round(element, 4) for element in row[n:]] for row in mat]
         return Matrix(inverse)
 
-    '''
-    def gram_schmidt(self, A):
-        """Phân rã ma trận A thành QR bằng Gram-Schmidt"""
-        n = len(A)
-        Q = [[0] * n for _ in range(n)]
-        R = [[0] * n for _ in range(n)]
-
+    ''' gram_schmidt chưa tổng quát'''
+    def gram_schmidt(self):
+        n = self.rows
+        A = [[0] * n for _ in range(n)]
+        B = [[0] * n for _ in range(n)]
         for j in range(n):
-            v = [A[i][j] for i in range(n)]
-
+            v = Vector([self.matrix[i][j] for i in range(n)])
             for i in range(j):
-                q = [Q[k][i] for k in range(n)]
-                R[i][j] = dot_product(q, v)
-                v = self.subtract(v, self.scalar_multiple(q, R[i][j]))
+                a = Vector([A[k][i] for k in range(n)])
+                B[i][j] = a.dot_product(v)
+                v = v.vector_subtract(a.scalar_multiply(B[i][j]))
 
-            R[j][j] = norm_vector(v)
-            q = [x / R[j][j] for x in v]
+            B[j][j] = v.norm_vector(2)
+            rounded = [round(x / B[j][j]) for x in v]
 
             for i in range(n):
-                Q[i][j] = q[i]
+                A[i][j] = rounded[i]
 
-        return Q, R
+        return A, B
 
-    def qr_algorithm(self, A, num_iterations):
-        """Sử dụng thuật toán QR để tìm giá trị riêng"""
-        n = len(A)
+    def qr_algorithm(self, num_iterations):
+        n = self.rows
+        A = self.matrix
 
         for _ in range(num_iterations):
-            Q, R = self.gram_schmidt(A)
+            # Phân rã ma trận A thành QR bằng Gram-Schmidt
+            Q, R = self.gram_schmidt()
             A = [[sum(R[i][k] * Q[k][j] for k in range(n)) for j in range(n)] for i in range(n)]
 
+        return A
+
+    def find_eigenvalue(self, num_iterations=100):
+        n = self.rows
+        A = self.qr_algorithm(num_iterations)
         # Các giá trị trên đường chéo của A là eigenvalues
         eigenvalues = [A[i][i] for i in range(n)]
-        return eigenvalues, A
+        return eigenvalues
 
-    def find_eigenvector(self, A, eigenvalue):
-        """Tìm vector riêng tương ứng với một giá trị riêng"""
-        n = len(A)
-        I = [[1 if i == j else 0 for j in range(n)] for i in range(n)]
+    def find_eigenvector(self, eigenvalue):
+        # Tìm vector riêng tương ứng với một giá trị riêng
+        n = self.rows
+        A = self.matrix
 
         # Tạo ma trận A - λI
         B = [[A[i][j] - (eigenvalue if i == j else 0) for j in range(n)] for i in range(n)]
@@ -192,28 +195,36 @@ class Matrix:
         # Giả sử giá trị riêng đã là đúng, ta tìm vector riêng cho ma trận A - λI
         # Bằng cách giải hệ phương trình Bx = 0
         # Ở đây ta dùng phương pháp khử Gauss để tìm x
+        B = Matrix(B).gaussian_elimination()
 
-    def diagonalize(self, A, num_iterations=100):
-        """Tính giá trị riêng và chéo hóa ma trận"""
-        # Tính giá trị riêng bằng QR algorithm
-        eigenvalues, _ = self.qr_algorithm(A, num_iterations)
+        x = [0 for _ in range(n)]
+        x[-1] = 1  # Ta giả sử giá trị cuối cùng của vector riêng là 1
+        for i in range(n-2, -1, -1):
+            x[i] = -sum(B[i][j] * x[j] for j in range(i+1, n)) / B[i][i]
+        eigenvector = x
+
+        return eigenvector
+
+    def diagonalize(self, num_iterations=100):
+        # Tính giá trị riêng
+        eigenvalues = self.find_eigenvalue(num_iterations)
 
         # Tìm vector riêng tương ứng cho mỗi giá trị riêng
         eigenvectors = []
         for eigenvalue in eigenvalues:
-            eigenvector = self.find_eigenvector(A, eigenvalue)
+            eigenvector = self.find_eigenvector(eigenvalue)
             eigenvectors.append(eigenvector)
 
         # Ma trận chéo hóa P, chứa các vector riêng
         P = [[eigenvectors[j][i] for j in range(len(eigenvalues))] for i in range(len(eigenvalues))]
 
-        P_inv = self.inverse_matrix([row[:] for row in P])  # Tạo bản sao của P
+        # Tạo bản sao của P
+        P_inv = Matrix(P).inverse()
 
         # Ma trận chéo chứa các giá trị riêng
         Lambda = [[eigenvalues[i] if i == j else 0 for j in range(len(eigenvalues))] for i in range(len(eigenvalues))]
 
-        return P, Lambda, P_inv
-    '''
+        return Matrix(P), Matrix(Lambda), P_inv
 
     def is_symmetric(self):
         if self == self.transpose():
@@ -230,22 +241,25 @@ class Matrix:
         # Norm Frobenius
         return (sum(cell ** 2 for row in self.matrix for cell in row)) ** 0.5
 
-def dot_product(vectorA, vectorB):
-    n = len(vectorA)
-    dotProduct = 0
-    for i in range(n):
-        dotProduct += vectorA[i] * vectorB[i]
-    return dotProduct
+class Vector:
+    def __init__(self, vector):
+        self.vector = vector
+        self.size = len(vector)
 
-def scalar_multiply(vector, k):
-    return [k * x for x in vector]
+    def dot_product(self, other):
+        dotProduct = 0
+        for i in range(self.size):
+            dotProduct += self.vector[i] * other.vector[i]
+        return dotProduct
 
-def vector_subtract(vectorA, vectorB):
-    n = len(vectorA)
-    ans = 0
-    for i in range(n):
-        ans += vectorA[i] - vectorB[i]
-    return ans
+    def scalar_multiply(self, k):
+        return [k * x for x in self.vector]
 
-def norm_vector(vector, p):
-    return (sum(abs(x)**p for x in vector))**(1/p)
+    def vector_subtract(self, other):
+        ans = [0 for _ in range(self.size)]
+        for i in range(self.size):
+            ans[i] += self.vector[i] - other.vector[i]
+        return ans
+
+    def norm_vector(self, p=2):
+        return (sum(abs(x)**p for x in self.vector))**(1/p)
