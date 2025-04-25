@@ -1,15 +1,39 @@
 from vector import *
 
 class Matrix:
-    def __init__(self, matrix):
+    """
+    A class representing a matrix with various linear algebra operations.
+    
+    Attributes:
+        matrix (list): A 2D list representing the matrix elements.
+        rows (int): Number of rows in the matrix.
+        cols (int): Number of columns in the matrix.
+    """
+    def __init__(self, matrix: list):
+        """
+        Initialize a matrix object from a 2D list.
+        
+        Parameters:
+            matrix (list): A 2D list representing the matrix elements.
+        """
         self.matrix = matrix
         self.rows = len(matrix)
         self.cols = len(matrix[0])
 
     def dimension(self):
+        """
+        Get the dimensions of the matrix.
+        
+        Returns:
+            tuple: A tuple containing the number of rows and columns (rows, cols).
+        """
         return self.rows, self.cols
 
     def show_matrix(self):
+        """
+        Display the matrix elements.
+        Prints each row of the matrix on a separate line.
+        """
         for i in range(self.rows):
             for j in range(self.cols):
                 print(self.matrix[i][j], end=' ')
@@ -17,6 +41,15 @@ class Matrix:
         print()
 
     def __eq__(self, other):
+        """
+        Check if two matrices are equal.
+        
+        Parameters:
+            other (Matrix): The matrix to compare with.
+            
+        Returns:
+            bool: True if matrices are equal, False otherwise.
+        """
         if self.rows != other.rows or self.cols != other.cols:
             return False
         
@@ -27,10 +60,28 @@ class Matrix:
         return True
 
     def transpose(self):
+        """
+        Calculate the transpose of the matrix.
+        
+        Returns:
+            Matrix: The transposed matrix.
+        """
         transpose = [[self.matrix[i][j] for i in range(self.rows)] for j in range(self.cols)]
         return Matrix(transpose)
 
     def add(self, other):
+        """
+        Add another matrix to this matrix.
+        
+        Parameters:
+            other (Matrix): The matrix to add.
+            
+        Returns:
+            Matrix: The resulting matrix after addition.
+            
+        Raises:
+            ValueError: If the matrices have different dimensions.
+        """
         if self.dimension() != other.dimension():
             raise ValueError("Matrices must have the same dimensions")
         
@@ -38,27 +89,79 @@ class Matrix:
         return Matrix(result)
 
     def subtract(self, other):
+        """
+        Subtract another matrix from this matrix.
+        
+        Parameters:
+            other (Matrix): The matrix to subtract from this matrix.
+            
+        Returns:
+            Matrix: The resulting matrix after subtraction.
+            
+        Raises:
+            ValueError: If the matrices have different dimensions.
+        """
         if self.dimension() != other.dimension():
             raise ValueError("Matrices must have the same dimensions")
         result = [[self.matrix[i][j] - other.matrix[i][j] for j in range(self.cols)] for i in range(self.rows)]
         return Matrix(result)
 
-    def scalar_multiple(self, k):
+    def scalar_multiple(self, k: int|float):
+        """
+        Multiply the matrix by a scalar value.
+        
+        Parameters:
+            k (int | float): The scalar value to multiply the matrix by.
+            
+        Returns:
+            Matrix: A new Matrix object representing the scaled matrix.
+        """
         result = [[self.matrix[i][j] * k for j in range(self.cols)] for i in range(self.rows)]
         return Matrix(result)
 
     def multiply(self, other):
+        """
+        Multiply this matrix by another matrix.
+        
+        Parameters:
+            other (Matrix): The matrix to multiply with this matrix.
+            
+        Returns:
+            Matrix: A new Matrix object representing the product.
+            
+        Raises:
+            ValueError: If the number of columns in this matrix doesn't equal the number of rows in the other matrix.
+        """
         if self.cols != other.rows:
             raise ValueError("Columns in first matrix must equal to number of rows in second matrix")
         
         result = [[sum(self.matrix[i][k] * other.matrix[k][j] for k in range(self.cols)) for j in range(other.cols)] for i in range(self.rows)]
         return Matrix(result)
 
-    def identity(n):
+    @staticmethod
+    def identity(n: int):
+        """
+        Create an identity matrix of size n×n.
+        
+        Parameters:
+            n (int): The size of the identity matrix.
+            
+        Returns:
+            Matrix: A new n×n Matrix object with 1s on the diagonal and 0s elsewhere.
+        """
         identity = [[1 if i == j else 0 for i in range(n)] for j in range(n)]
         return Matrix(identity)
 
-    def gaussian_elimination(self, augmented=False): # If True, treats the matrix as an augmented matrix (system of equations)
+    def gaussian_elimination(self, augmented=False):
+        """
+        Perform Gaussian elimination on the matrix.
+        
+        Parameters:
+            augmented (bool, default=False): If True, treats the matrix as an augmented matrix (system of equations).
+            
+        Returns:
+            Matrix: The matrix in row echelon form.
+        """
         # Create a deep copy of the matrix to avoid modifying the original
         mat = [row[:] for row in self.matrix]
         rows, cols = self.rows, self.cols
@@ -105,6 +208,12 @@ class Matrix:
         return Matrix(mat)
 
     def rank(self):
+        """
+        Calculate the rank of the matrix.
+        
+        Returns:
+            int: The rank of the matrix (number of linearly independent rows/columns).
+        """
         rank = 0
         mat = self.gaussian_elimination()
         for i in range(len(mat)):
@@ -113,12 +222,27 @@ class Matrix:
         return rank
 
     def is_square(self):
+        """
+        Check if the matrix is square (same number of rows and columns).
+        
+        Returns:
+            bool: True if the matrix is square, False otherwise.
+        """
         if self.rows == self.cols:
             return True
         else:
             return False
 
-    def determinant(self):
+    def determinant(self) -> float:
+        """
+        Calculate the determinant of the matrix.
+        
+        Returns:
+            float: The determinant of the matrix.
+            
+        Raises:
+            ValueError: If the matrix is not square.
+        """
         if not self.is_square():
             raise ValueError("Determinant is defined only for square matrices")
         
@@ -169,6 +293,15 @@ class Matrix:
         return det
 
     def inverse(self):
+        """
+        Calculate the inverse of the matrix.
+        
+        Returns:
+            Matrix: The inverse of the matrix
+            
+        Raises:
+            ValueError: If the matrix is not square or not invertible.
+        """
         if not self.is_square():
             raise ValueError("Matrix must be square to have an inverse")
             
@@ -233,6 +366,15 @@ class Matrix:
         return Matrix(inverse)
 
     def gram_schmidt(self):
+        """
+        Perform the Gram-Schmidt orthogonalization process.
+        
+        Returns:
+            tuple: A tuple (Q, R) where Q is an orthogonal matrix and R is upper triangular.
+            
+        Raises:
+            ValueError: If the matrix is not square or its columns are linearly dependent.
+        """
         if not self.is_square():
             raise ValueError("Gram-Schmidt process requires a square matrix")
         
@@ -283,12 +425,17 @@ class Matrix:
 
     def qr_algorithm(self, num_iterations, tol=1e-10):
         """
+        Apply the QR algorithm to find eigenvalues.
+
         Parameters:
-        - num_iterations: Maximum number of iterations to perform
-        - tol: Tolerance for convergence
+            num_iterations (int): Maximum number of iterations to perform.
+            tol (float, default=1e-10): Tolerance for convergence.
         
         Returns:
-        - A matrix that approximates a diagonal matrix containing eigenvalues
+            Matrix: A matrix that approximates a diagonal matrix containing eigenvalues.
+            
+        Raises:
+            ValueError: If the matrix is not square.
         """
         if not self.is_square():
             raise ValueError("QR algorithm requires a square matrix")
@@ -319,6 +466,19 @@ class Matrix:
         return Matrix(A)
 
     def find_eigenvalues(self, num_iterations=100, tol=1e-10):
+        """
+        Find eigenvalues of the matrix using the QR algorithm.
+        
+        Parameters:
+            num_iterations (int, default=100): Maximum number of iterations for the QR algorithm.
+            tol (float, default=1e-10); Tolerance for convergence.
+            
+        Returns:
+            list: List of eigenvalues.
+            
+        Raises:
+        ValueError: If the matrix is not square.
+        """
         if not self.is_square():
             raise ValueError("Eigenvalue calculation requires a square matrix")
             
@@ -330,7 +490,21 @@ class Matrix:
         
         return eigenvalues
 
-    def find_eigenvector(self, eigenvalue, tol=1e-10):
+    def find_eigenvector(self, eigenvalue: int|float, tol=1e-10):
+        """
+        Find an eigenvector corresponding to the given eigenvalue
+        using inverse iteration method.
+        
+        Parameters:
+            eigenvalue (int | float): The eigenvalue for which to find the corresponding eigenvector
+            tol (float, default=1e-10): Tolerance for numerical computations.
+            
+        Returns:
+            list: The eigenvector corresponding to the given eigenvalue.
+            
+        Raises:
+            ValueError: If the matrix is not square.
+        """
         if not self.is_square():
             raise ValueError("Eigenvector calculation requires a square matrix")
             
@@ -338,7 +512,6 @@ class Matrix:
         
         # Create matrix A - λI
         B = [[self.matrix[i][j] - (eigenvalue if i == j else 0) for j in range(n)] for i in range(n)]
-        B_matrix = Matrix(B)
         
         # Start with a random vector (ones vector)
         x = [1] * n  
@@ -386,10 +559,18 @@ class Matrix:
 
     def diagonalize(self, num_iterations=100, tol=1e-10):
         """
+        Attempt to diagonalize the matrix if possible.
+        
+        Parameters:
+            num_iterations (int, default=100): Maximum number of iterations for eigenvalue calculations.
+            tol (float, default=1e-10): Tolerance for numerical computations.
+            
         Returns:
-        - P: Matrix of eigenvectors
-        - D: Diagonal matrix of eigenvalues
-        - P⁻¹: Inverse of P
+            tuple: A tuple (P, D, P_inv) where P is the eigenvector matrix,
+                  D is the diagonal matrix of eigenvalues, and P_inv is the inverse of P.
+            
+        Raises:
+            ValueError: If the matrix is not square or not diagonalizable.
         """
         if not self.is_square():
             raise ValueError("Only square matrices can be diagonalized")
@@ -434,17 +615,35 @@ class Matrix:
         return P_matrix, D_matrix, P_inv
 
     def is_symmetric(self):
+        """
+        Check if the matrix is symmetric (equal to its transpose).
+        
+        Returns:
+            bool: True if the matrix is symmetric, False otherwise.
+        """
         if self == self.transpose():
             return True
         else:
             return False
     
     def is_positive_definite(self):
+        """
+        Check if the matrix is positive definite.
+        A matrix is positive definite if it's symmetric and all eigenvalues are positive.
+        
+        Returns:
+            bool: True if the matrix is positive definite, False otherwise.
+        """
         if not (self.is_square() and self.is_symmetric()):
             return False
         eigenvalues = self.find_eigenvalues()
         return all(ev > 0 for ev in eigenvalues)
 
     def norm(self):
-        # Euclidean norm
+        """
+        Calculate the Euclidean (Frobenius) norm of the matrix.
+        
+        Returns:
+            float: The Euclidean norm (square root of the sum of squares of all elements).
+        """
         return (sum(cell ** 2 for row in self.matrix for cell in row)) ** 0.5
