@@ -259,8 +259,8 @@ class Matrix:
                 R[i][j] = orthonormal_basis[i].dot_product(v)
 
                 # Subtract projection from current vector
-                projection = Vector(orthonormal_basis[i].scalar_multiply(R[i][j]))
-                v = Vector(v.subtract(projection))
+                projection = orthonormal_basis[i].scalar_multiply(R[i][j])
+                v = v.subtract(projection)
 
             # Calculate the norm of the resulting vector
             norm = v.norm(p=2)
@@ -272,7 +272,7 @@ class Matrix:
             R[j][j] = norm
             
             # Create a normalized vector and store it
-            q_j = Vector([x / norm for x in v.vector])
+            q_j = v.scalar_multiply(1/norm)
             orthonormal_basis.append(q_j)
             
             # Store in Q matrix
@@ -340,8 +340,8 @@ class Matrix:
         B = [[self.matrix[i][j] - (eigenvalue if i == j else 0) for j in range(n)] for i in range(n)]
         B_matrix = Matrix(B)
         
-        # Start with a random vector ()
-        x = [1 for _ in range(n)]
+        # Start with a random vector (ones vector)
+        x = [1] * n  
         
         # Normalize
         norm = (sum(val**2 for val in x))**0.5
@@ -360,17 +360,19 @@ class Matrix:
             solved = augmented_matrix.gaussian_elimination()
             
             # Extract solution y
-            y = []
-            for i in range(n):
-                if abs(solved[i][i]) < tol:  # Near-zero pivot
-                    y.append(0)
+            y = [0] * n  
+
+            # Perform back-substitution in reverse order
+            for i in range(n-1, -1, -1):  
+                if abs(solved.matrix[i][i]) < tol:  # Near-zero pivot
+                    y[i] = 0
                 else:
-                    # Back-substitution
-                    sum_val = solved[i][-1]
+                    # Calculate the sum of already known values
+                    sum_val = 0
                     for j in range(i+1, n):
-                        if i < len(solved) and j < len(solved[i]) - 1:
-                            sum_val -= solved[i][j] * y[j]
-                    y.append(sum_val / solved[i][i])
+                        sum_val += solved.matrix[i][j] * y[j]
+                    
+                    y[i] = (solved.matrix[i][-1] - sum_val) / solved.matrix[i][i]
             
             # Normalize y
             norm = (sum(val**2 for val in y))**0.5
@@ -383,6 +385,12 @@ class Matrix:
         return x
 
     def diagonalize(self, num_iterations=100, tol=1e-10):
+        """
+        Returns:
+        - P: Matrix of eigenvectors
+        - D: Diagonal matrix of eigenvalues
+        - P⁻¹: Inverse of P
+        """
         if not self.is_square():
             raise ValueError("Only square matrices can be diagonalized")
             
@@ -434,7 +442,7 @@ class Matrix:
     def is_positive_definite(self):
         if not (self.is_square() and self.is_symmetric()):
             return False
-        eigenvalues = self.find_eigenvalue()
+        eigenvalues = self.find_eigenvalues()
         return all(ev > 0 for ev in eigenvalues)
 
     def norm(self):
